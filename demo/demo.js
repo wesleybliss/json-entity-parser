@@ -13,7 +13,9 @@ import splashHostEntities from './sample-data/splash-host-entities'
 
 const data = /*splashHostEntities*/ superheros
 
-const ep = new EntityParser({ idKey: 'id', logging: true })
+//console.log('ORIGINAL JSON\n', JSON.stringify(data, null, 4))
+
+const ep = new EntityParser({ idKey: 'id', logging: false })
 
 const em = ep.createEntityMap(data)
 console.log('ENTITY MAP\n', JSON.stringify(em, null, 4))
