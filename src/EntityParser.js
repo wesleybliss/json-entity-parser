@@ -84,7 +84,7 @@ export default class EntityParser {
         
     }
     
-    createRef(parentEntity, parentId, id, name) {
+    createRef(parentEntity, parentId, name, id) {
         
         // Not exactly sure why this is needed, but I think
         // it's on first-run, there's no parent yet
@@ -94,9 +94,9 @@ export default class EntityParser {
             console.info(`+ REF ${parentEntity} / ${parentId} / #REF#${name}:${id}`)
         
         // Parent key we want to add the ref to
-        const pk = this.entities[parentEntity][parentId][name]
+        const pk = this.entities[parentEntity][parentId]
         
-        if (!pk || !Array.isArray(pk))
+        if (!pk[name] || !Array.isArray(pk[name]))
             this.entities[parentEntity][parentId][name] = []
         
         this.entities[parentEntity][parentId][name]
@@ -104,7 +104,7 @@ export default class EntityParser {
         
     }
     
-    parseEntities(o, parentEntity, parentId) {
+    parseEntities(o, parentEntity, parentId, needsRef = false) {
         
         this.createEntityMap(o)
         
@@ -121,14 +121,26 @@ export default class EntityParser {
             const value = o[key]
             
             if (Array.isArray(value)) {
+                
                 value.forEach(it => {
-                    this.createRef(parentEntity, id, this.getEntityId(it), name)
-                    this.parseEntities(it, name, id)
+                    
+                    // Create a forward ref from parent to child
+                    this.createRef(parentEntity, id, name, this.getEntityId(it))
+                    
+                    // Parse the entity, adding it to the final result
+                    this.parseEntities(it, name, id, true)
+                    
+                    // Create a back ref from child to parent (now that child exists)
+                    if (parentEntity && id)
+                        this.createRef(name, this.getEntityId(it), parentEntity, id)
+                    
                 })
+                
             }
             else if (typeof value === 'object') {
-                this.createRef(parentEntity, parentId, id, name)
+                
                 this.parseEntities(value, name, id)
+                
             }
             else {
                 
