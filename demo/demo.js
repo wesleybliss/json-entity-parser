@@ -1,17 +1,9 @@
 #!/usr/bin/env babel-node
 
 import EntityParser from '../src/EntityParser'
-
 import superheros from './sample-data/superheros'
-import splashHostEntities from './sample-data/splash-host-entities'
 
-/*([superheros, splashHostEntities]).forEach(it => {
-    const ep = new EntityParser({ idKey: 'id' })
-    const res = ep.parse(it)
-    console.log(JSON.stringify(res, null, 4))
-})*/
-
-const data = /*splashHostEntities*/ superheros
+const data = superheros
 
 //console.log('ORIGINAL JSON\n', JSON.stringify(data, null, 4))
 
