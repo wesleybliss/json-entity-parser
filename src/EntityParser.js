@@ -34,6 +34,10 @@ export default class EntityParser {
         return s
     }
     
+    getEntityId(o) {
+        return o[this.opts.idKey]
+    }
+    
     formatEntityName(name) {
         if (name.includes('_'))
             name = name
@@ -80,11 +84,31 @@ export default class EntityParser {
         
     }
     
+    createRef(parentEntity, parentId, id, name) {
+        
+        // Not exactly sure why this is needed, but I think
+        // it's on first-run, there's no parent yet
+        if (!parentEntity) return
+        
+        if (this.opts.logging)
+            console.info(`+ REF ${parentEntity} / ${parentId} / #REF#${name}:${id}`)
+        
+        // Parent key we want to add the ref to
+        const pk = this.entities[parentEntity][parentId][name]
+        
+        if (!pk || !Array.isArray(pk))
+            this.entities[parentEntity][parentId][name] = []
+        
+        this.entities[parentEntity][parentId][name]
+            .push(`#REF#${name}:${id}`)
+        
+    }
+    
     parseEntities(o, parentEntity, parentId) {
         
         this.createEntityMap(o)
         
-        const id = o[this.opts.idKey] || null
+        const id = this.getEntityId(o) || null
         const keys = Object.keys(o)
         
         if (!this.firstRun && !id)
@@ -97,9 +121,13 @@ export default class EntityParser {
             const value = o[key]
             
             if (Array.isArray(value)) {
-                value.forEach(it => this.parseEntities(it, name, id))
+                value.forEach(it => {
+                    this.createRef(parentEntity, id, this.getEntityId(it), name)
+                    this.parseEntities(it, name, id)
+                })
             }
             else if (typeof value === 'object') {
+                this.createRef(parentEntity, parentId, id, name)
                 this.parseEntities(value, name, id)
             }
             else {
