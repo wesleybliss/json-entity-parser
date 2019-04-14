@@ -84,7 +84,7 @@ export default class EntityParser {
         
     }
     
-    createRef(parentEntity, parentId, name, id) {
+    createRef(parentEntity, parentId, name, id, isBackRef = false) {
         
         // Not exactly sure why this is needed, but I think
         // it's on first-run, there's no parent yet
@@ -95,12 +95,24 @@ export default class EntityParser {
         
         // Parent key we want to add the ref to
         const pk = this.entities[parentEntity][parentId]
+        const refCode = `${name}:${id}`
         
-        if (!pk[name] || !Array.isArray(pk[name]))
-            this.entities[parentEntity][parentId][name] = []
-        
-        this.entities[parentEntity][parentId][name]
-            .push(`#REF#${name}:${id}`)
+        if (isBackRef) {
+            
+            // Add a back (child) ref
+            this.entities[parentEntity][parentId]['#REFPARENT#'] = refCode
+            
+        }
+        else {
+            
+            if (!pk[name] || !Array.isArray(pk[name]))
+                this.entities[parentEntity][parentId][name] = []
+            
+            this.entities[parentEntity][parentId][name].push({
+                ['#REFCHILD#']: refCode
+            })
+            
+        }
         
     }
     
@@ -132,7 +144,7 @@ export default class EntityParser {
                     
                     // Create a back ref from child to parent (now that child exists)
                     if (parentEntity && id)
-                        this.createRef(name, this.getEntityId(it), parentEntity, id)
+                        this.createRef(name, this.getEntityId(it), parentEntity, id, true)
                     
                 })
                 
