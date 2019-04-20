@@ -1,0 +1,42 @@
+#!/bin/env node
+
+const fs = require('fs')
+const path = require('path')
+const EntityParser = require('../dist/EntityParser').default
+
+const ARGS = process.argv
+    .slice(2)
+    .map(it => it.toLowerCase())
+
+const SELF = (it => it.startsWith('_') ? it.substring(1) : it)(path.basename(process.argv[1]))
+const USAGE = `
+USAGE:
+    ${SELF} <path/to/file.json>
+`
+
+if (process.argv.length < 3) {
+    console.info(USAGE)
+    process.exit(0)
+}
+
+const src = process.argv[2]
+const data = fs.readFileSync(src, 'utf8')
+const json = JSON.parse(data)
+
+const parseIdKey = () =>
+    ARGS.find(it => it.startsWith('--idkey'))
+        .split('--idkey')
+        .pop()
+
+const idKey = ARGS.includes('--idkey')
+    ? parseIdKey() : 'id'
+
+const entityParser = new EntityParser({
+    idKey,
+    logging: ARGS.includes('--logging')
+})
+
+const result = entityParser.parse(json)
+
+console.log(JSON.stringify(ARGS))
+console.log(JSON.stringify(result, null, 4))
