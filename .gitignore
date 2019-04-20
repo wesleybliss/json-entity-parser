@@ -6,7 +6,6 @@ test/e2e/reports
 selenium-debug.log
 .nyc_output
 
-dist/
 logs/*
 !.gitkeep
 npm-shrinkwrap.json
