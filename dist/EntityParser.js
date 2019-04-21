@@ -49,7 +49,17 @@ function () {
   }, {
     key: "getEntityId",
     value: function getEntityId(o) {
-      return o[this.opts.idKey];
+      try {
+        if (!o || !o.hasOwnProperty(this.opts.idKey) || !o[this.opts.idKey]) return this.getContrivedEntityId();else return o[this.opts.idKey];
+      } catch (e) {
+        return this.getContrivedEntityId();
+      }
+    }
+  }, {
+    key: "getContrivedEntityId",
+    value: function getContrivedEntityId() {
+      var rn = Math.floor(Math.random() * 10000);
+      return "#FAKE_ID#".concat(Date.now(), "-").concat(rn);
     }
   }, {
     key: "formatEntityName",
@@ -72,6 +82,7 @@ function () {
     value: function createEntityMap(o) {
       var _this = this;
 
+      if (!o) return this.entities;
       this.requireValidObject(o);
       var keys = Object.keys(o);
 
@@ -96,6 +107,22 @@ function () {
       return this.entities;
     }
   }, {
+    key: "canCreateBackRef",
+    value: function canCreateBackRef(parentEntity, parentId) {
+      return parentEntity && parentId && Boolean(this.entities[parentEntity][parentId]);
+    }
+  }, {
+    key: "canCreateForwardRef",
+    value: function canCreateForwardRef(pk, name) {
+      var canCreateForwardRef = false;
+
+      try {
+        if (pk && name) canCreateForwardRef = true;
+      } catch (e) {}
+
+      return canCreateForwardRef;
+    }
+  }, {
     key: "createRef",
     value: function createRef(parentEntity, parentId, name, id) {
       var isBackRef = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
@@ -108,9 +135,11 @@ function () {
       var refCode = "".concat(name, ":").concat(id);
 
       if (isBackRef) {
-        // Add a back (child) ref
+        if (!this.canCreateBackRef(parentEntity, parentId)) return; // Add a back (child) ref
+
         this.entities[parentEntity][parentId]['#REFPARENT#'] = refCode;
       } else {
+        if (!this.canCreateForwardRef(pk, name)) return;
         if (!pk[name] || !Array.isArray(pk[name])) this.entities[parentEntity][parentId][name] = [];
         this.entities[parentEntity][parentId][name].push(_defineProperty({}, '#REFCHILD#', refCode));
       }
@@ -121,10 +150,12 @@ function () {
       var _this2 = this;
 
       var needsRef = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+      if (!o) return this.entities;
+      this.requireValidObject(o);
       this.createEntityMap(o);
-      var id = this.getEntityId(o) || null;
+      var id = this.getEntityId(o);
       var keys = Object.keys(o);
-      if (!this.firstRun && !id) throw new Error('ID not found for ' + stringify(o));
+      if (!this.firstRun && !id) throw new Error("ID not found, ".concat(id, ", for ").concat(o));
       this.firstRun = false;
 
       var _loop = function _loop() {
@@ -136,14 +167,16 @@ function () {
 
         if (Array.isArray(value)) {
           value.forEach(function (it) {
-            // Create a forward ref from parent to child
-            _this2.createRef(parentEntity, id, name, _this2.getEntityId(it)); // Parse the entity, adding it to the final result
+            var itId = _this2.getEntityId(it); // Create a forward ref from parent to child
+
+
+            _this2.createRef(parentEntity, id, name, itId); // Parse the entity, adding it to the final result
 
 
             _this2.parseEntities(it, name, id, true); // Create a back ref from child to parent (now that child exists)
 
 
-            if (parentEntity && id) _this2.createRef(name, _this2.getEntityId(it), parentEntity, id, true);
+            if (parentEntity && id) _this2.createRef(name, itId, parentEntity, id, true);
           });
         } else if (_typeof(value) === 'object') {
           _this2.parseEntities(value, name, id);
