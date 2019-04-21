@@ -199,7 +199,16 @@ export default class EntityParser {
             }
             else if (typeof value === 'object') {
                 
+                const valueId = this.getEntityId(value)
+                
+                // Create a forward ref from parent to child
+                this.createRef(parentEntity, id, name, valueId)
+                
                 this.parseEntities(value, name, id)
+                
+                // Create a back ref from child to parent (now that child exists)
+                if (parentEntity && id)
+                    this.createRef(name, valueId, parentEntity, id, true)
                 
             }
             else {
