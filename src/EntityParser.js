@@ -10,6 +10,7 @@ export default class EntityParser {
         
         this.firstRun = true
         this.entities = {}
+        this.refQueue = []
         
         this.opts = {
             ...EntityParser.defaultOpts,
@@ -122,6 +123,10 @@ export default class EntityParser {
     }
     
     createRef(parentEntity, parentId, name, id, isBackRef = false) {
+        this.refQueue.push([parentEntity, parentId, name, id, isBackRef])
+    }
+    
+    createRefEx(parentEntity, parentId, name, id, isBackRef = false) {
         
         // Not exactly sure why this is needed, but I think
         // it's on first-run, there's no parent yet
@@ -231,6 +236,8 @@ export default class EntityParser {
             o.forEach(it => this.parseEntities(it))
         else
             this.parseEntities(o)
+        
+        this.refQueue.map(params => this.createRefEx(...params))
         
         return this.entities
         

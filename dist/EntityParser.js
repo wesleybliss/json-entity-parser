@@ -5,6 +5,14 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports["default"] = void 0;
 
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
@@ -27,6 +35,7 @@ function () {
 
     this.firstRun = true;
     this.entities = {};
+    this.refQueue = [];
     this.opts = _objectSpread({}, EntityParser.defaultOpts, opts);
   }
 
@@ -126,6 +135,12 @@ function () {
     key: "createRef",
     value: function createRef(parentEntity, parentId, name, id) {
       var isBackRef = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
+      this.refQueue.push([parentEntity, parentId, name, id, isBackRef]);
+    }
+  }, {
+    key: "createRefEx",
+    value: function createRefEx(parentEntity, parentId, name, id) {
+      var isBackRef = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
       // Not exactly sure why this is needed, but I think
       // it's on first-run, there's no parent yet
       if (!parentEntity) return;
@@ -179,7 +194,15 @@ function () {
             if (parentEntity && id) _this2.createRef(name, itId, parentEntity, id, true);
           });
         } else if (_typeof(value) === 'object') {
-          _this2.parseEntities(value, name, id);
+          var valueId = _this2.getEntityId(value); // Create a forward ref from parent to child
+
+
+          _this2.createRef(parentEntity, id, name, valueId);
+
+          _this2.parseEntities(value, name, id); // Create a back ref from child to parent (now that child exists)
+
+
+          if (parentEntity && id) _this2.createRef(name, valueId, parentEntity, id, true);
         } else {
           if (_this2.opts.logging) console.info("+ ".concat(parentEntity, " / ").concat(id, " / ").concat(key, " = ").concat(value));
           _this2.entities[parentEntity][id] = _this2.entities[parentEntity][id] || {};
@@ -199,6 +222,9 @@ function () {
       if (Array.isArray(o)) o.forEach(function (it) {
         return _this3.parseEntities(it);
       });else this.parseEntities(o);
+      this.refQueue.map(function (params) {
+        return _this3.createRefEx.apply(_this3, _toConsumableArray(params));
+      });
       return this.entities;
     }
   }]);
