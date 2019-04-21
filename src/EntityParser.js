@@ -35,7 +35,22 @@ export default class EntityParser {
     }
     
     getEntityId(o) {
-        return o[this.opts.idKey]
+        try {
+            if (!o
+                || !o.hasOwnProperty(this.opts.idKey)
+                || !o[this.opts.idKey])
+                return this.getContrivedEntityId()
+            else
+                return o[this.opts.idKey]
+        }
+        catch (e) {
+            return this.getContrivedEntityId()
+        }
+    }
+    
+    getContrivedEntityId() {
+        const rn = Math.floor(Math.random() * 10000)
+        return `#FAKE_ID#${Date.now()}-${rn}`
     }
     
     formatEntityName(name) {
@@ -58,6 +73,7 @@ export default class EntityParser {
     
     createEntityMap(o) {
         
+        if (!o) return this.entities
         this.requireValidObject(o)
         
         const keys = Object.keys(o)
@@ -84,6 +100,27 @@ export default class EntityParser {
         
     }
     
+    canCreateBackRef(parentEntity, parentId) {
+        
+        return parentEntity
+            && parentId
+            && Boolean(this.entities[parentEntity][parentId])
+        
+    }
+    
+    canCreateForwardRef(pk, name) {
+        
+        let canCreateForwardRef = false
+        
+        try {
+            if (pk && name)
+                canCreateForwardRef = true
+        } catch (e) {}
+        
+        return canCreateForwardRef
+        
+    }
+    
     createRef(parentEntity, parentId, name, id, isBackRef = false) {
         
         // Not exactly sure why this is needed, but I think
@@ -99,11 +136,17 @@ export default class EntityParser {
         
         if (isBackRef) {
             
+            if (!this.canCreateBackRef(parentEntity, parentId))
+                return
+            
             // Add a back (child) ref
             this.entities[parentEntity][parentId]['#REFPARENT#'] = refCode
             
         }
         else {
+            
+            if (!this.canCreateForwardRef(pk, name))
+                return
             
             if (!pk[name] || !Array.isArray(pk[name]))
                 this.entities[parentEntity][parentId][name] = []
@@ -118,13 +161,16 @@ export default class EntityParser {
     
     parseEntities(o, parentEntity, parentId, needsRef = false) {
         
+        if (!o) return this.entities
+        this.requireValidObject(o)
+        
         this.createEntityMap(o)
         
-        const id = this.getEntityId(o) || null
+        const id = this.getEntityId(o)
         const keys = Object.keys(o)
         
         if (!this.firstRun && !id)
-            throw new Error('ID not found for ' + stringify(o))
+            throw new Error(`ID not found, ${id}, for ${o}`)
         this.firstRun = false
         
         for (let key of keys) {
@@ -136,15 +182,17 @@ export default class EntityParser {
                 
                 value.forEach(it => {
                     
+                    const itId = this.getEntityId(it)
+                    
                     // Create a forward ref from parent to child
-                    this.createRef(parentEntity, id, name, this.getEntityId(it))
+                    this.createRef(parentEntity, id, name, itId)
                     
                     // Parse the entity, adding it to the final result
                     this.parseEntities(it, name, id, true)
                     
                     // Create a back ref from child to parent (now that child exists)
                     if (parentEntity && id)
-                        this.createRef(name, this.getEntityId(it), parentEntity, id, true)
+                        this.createRef(name, itId, parentEntity, id, true)
                     
                 })
                 
