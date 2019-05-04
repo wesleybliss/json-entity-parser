@@ -92,7 +92,7 @@ function () {
       var _this = this;
 
       if (!o) return this.entities;
-      this.requireValidObject(o);
+      if (_typeof(o) !== 'object' && !Array.isArray(o)) return this.entities;
       var keys = Object.keys(o);
 
       for (var _i = 0, _keys = keys; _i < _keys.length; _i++) {
@@ -166,7 +166,6 @@ function () {
 
       var needsRef = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
       if (!o) return this.entities;
-      this.requireValidObject(o);
       this.createEntityMap(o);
       var id = this.getEntityId(o);
       var keys = Object.keys(o);
@@ -186,9 +185,10 @@ function () {
 
 
             _this2.createRef(parentEntity, id, name, itId); // Parse the entity, adding it to the final result
+            //this.parseEntities(it, name, id, true)
 
 
-            _this2.parseEntities(it, name, id, true); // Create a back ref from child to parent (now that child exists)
+            _this2.parse(it, name, id, true); // Create a back ref from child to parent (now that child exists)
 
 
             if (parentEntity && id) _this2.createRef(name, itId, parentEntity, id, true);
@@ -216,12 +216,13 @@ function () {
     }
   }, {
     key: "parse",
-    value: function parse(o) {
+    value: function parse(o, parentEntity, parentId) {
       var _this3 = this;
 
+      var needsRef = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
       if (Array.isArray(o)) o.forEach(function (it) {
-        return _this3.parseEntities(it);
-      });else this.parseEntities(o);
+        return _this3.parseEntities(it, parentEntity, parentId, needsRef = false);
+      });else this.parseEntities(o, parentEntity, parentId, needsRef = false);
       this.refQueue.map(function (params) {
         return _this3.createRefEx.apply(_this3, _toConsumableArray(params));
       });

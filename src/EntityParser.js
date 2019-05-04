@@ -75,7 +75,9 @@ export default class EntityParser {
     createEntityMap(o) {
         
         if (!o) return this.entities
-        this.requireValidObject(o)
+        
+        if (typeof o !== 'object' && !Array.isArray(o))
+            return this.entities
         
         const keys = Object.keys(o)
         
@@ -167,7 +169,6 @@ export default class EntityParser {
     parseEntities(o, parentEntity, parentId, needsRef = false) {
         
         if (!o) return this.entities
-        this.requireValidObject(o)
         
         this.createEntityMap(o)
         
@@ -193,7 +194,8 @@ export default class EntityParser {
                     this.createRef(parentEntity, id, name, itId)
                     
                     // Parse the entity, adding it to the final result
-                    this.parseEntities(it, name, id, true)
+                    //this.parseEntities(it, name, id, true)
+                    this.parse(it, name, id, true)
                     
                     // Create a back ref from child to parent (now that child exists)
                     if (parentEntity && id)
@@ -230,12 +232,12 @@ export default class EntityParser {
         
     }
     
-    parse(o) {
+    parse(o, parentEntity, parentId, needsRef = false) {
         
         if (Array.isArray(o))
-            o.forEach(it => this.parseEntities(it))
+            o.forEach(it => this.parseEntities(it, parentEntity, parentId, needsRef = false))
         else
-            this.parseEntities(o)
+            this.parseEntities(o, parentEntity, parentId, needsRef = false)
         
         this.refQueue.map(params => this.createRefEx(...params))
         
